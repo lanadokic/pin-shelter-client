@@ -1,0 +1,178 @@
+import { useEffect, useState } from "react";
+import api from "../api/axios";
+
+function EditAnimalForm({ animal, onAnimalUpdated }) {
+  const [animalTypes, setAnimalTypes] = useState([]);
+  const [breeds, setBreeds] = useState([]);
+
+  const [formData, setFormData] = useState({
+    name: "",
+    animalTypeId: "",
+    breedId: "",
+    age: "",
+    arrivalDate: "",
+    description: ""
+  });
+
+  useEffect(() => {
+    api.get("/animals/animal-types")
+      .then(response => setAnimalTypes(response.data));
+
+    if (animal) {
+      setFormData({
+        name: animal.name || "",
+        animalTypeId: animal.animalTypeId || "",
+        breedId: animal.breedId || "",
+        age: animal.age || "",
+        arrivalDate: animal.arrivalDate
+          ? animal.arrivalDate.split("T")[0]
+          : "",
+        description: animal.description || ""
+      });
+
+      if (animal.animalTypeId) {
+        api.get(`/breeds/type/${animal.animalTypeId}`)
+          .then(response => setBreeds(response.data));
+      }
+    }
+  }, [animal]);
+
+  const handleTypeChange = (e) => {
+    const animalTypeId = e.target.value;
+
+    setFormData({
+      ...formData,
+      animalTypeId,
+      breedId: ""
+    });
+
+    api.get(`/breeds/type/${animalTypeId}`)
+      .then(response => setBreeds(response.data));
+  };
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    api.put(`/animals/${animal.id}`, {
+      name: formData.name,
+      animalTypeId: Number(formData.animalTypeId),
+      breedId: Number(formData.breedId),
+      age: Number(formData.age),
+      arrivalDate: formData.arrivalDate,
+      description: formData.description
+    })
+      .then(() => {
+        onAnimalUpdated();
+      })
+      .catch(error => console.error(error));
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <div className="row g-3">
+
+        <div className="col-md-6">
+          <label className="form-label">Name</label>
+          <input
+            type="text"
+            className="form-control"
+            name="name"
+            value={formData.name}
+            onChange={handleChange}
+            required
+          />
+        </div>
+
+        <div className="col-md-6">
+          <label className="form-label">Animal Type</label>
+          <select
+            className="form-select"
+            name="animalTypeId"
+            value={formData.animalTypeId}
+            onChange={handleTypeChange}
+            required
+          >
+            <option value="">Choose type</option>
+
+            {animalTypes.map(type => (
+              <option key={type.id} value={type.id}>
+                {type.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="col-md-6">
+          <label className="form-label">Breed</label>
+          <select
+            className="form-select"
+            name="breedId"
+            value={formData.breedId}
+            onChange={handleChange}
+            required
+            disabled={!formData.animalTypeId}
+          >
+            <option value="">Choose breed</option>
+
+            {breeds.map(breed => (
+              <option key={breed.id} value={breed.id}>
+                {breed.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="col-md-6">
+          <label className="form-label">Age</label>
+          <input
+            type="number"
+            className="form-control"
+            name="age"
+            value={formData.age}
+            onChange={handleChange}
+            required
+          />
+        </div>
+
+        <div className="col-md-6">
+          <label className="form-label">Arrival Date</label>
+          <input
+            type="date"
+            className="form-control"
+            name="arrivalDate"
+            value={formData.arrivalDate}
+            onChange={handleChange}
+            required
+          />
+        </div>
+
+        <div className="col-12">
+          <label className="form-label">Description</label>
+          <textarea
+            className="form-control"
+            name="description"
+            rows="3"
+            value={formData.description}
+            onChange={handleChange}
+          ></textarea>
+        </div>
+
+      </div>
+
+      <div className="text-end mt-4">
+        <button className="btn btn-primary">
+          Save Changes
+        </button>
+      </div>
+    </form>
+  );
+}
+
+export default EditAnimalForm;
